@@ -44,6 +44,8 @@
 
 #include <libaegisub/ass/time.h>
 
+#include <algorithm>
+
 #include <wx/log.h>
 
 VideoController::VideoController(agi::Context *c)
@@ -155,12 +157,57 @@ void VideoController::PlayLine() {
 	AssDialogue *curline = context->selectionController->GetActiveLine();
 	if (!curline) return;
 
-	context->audioController->PlayRange(TimeRange(curline->Start, curline->End));
+	PlayRange(TimeRange(curline->Start, curline->End));
+}
 
+void VideoController::PlaySelection() {
+	Stop();
+
+	context->audioController->PlayPrimaryRange();
+
+	StartVideoPlayback(context->audioController->GetPrimaryPlaybackRange());
+}
+
+void VideoController::PlaySelectionBefore() {
+	Stop();
+
+	int begin = context->audioController->GetPrimaryPlaybackRange().begin();
+	PlayRange(TimeRange(begin - 500, begin));
+}
+
+void VideoController::PlaySelectionAfter() {
+	Stop();
+
+	int end = context->audioController->GetPrimaryPlaybackRange().end();
+	PlayRange(TimeRange(end, end + 500));
+}
+
+void VideoController::PlaySelectionBegin() {
+	Stop();
+
+	TimeRange times(context->audioController->GetPrimaryPlaybackRange());
+	PlayRange(TimeRange(times.begin(), times.begin() + std::min(500, times.length())));
+}
+
+void VideoController::PlaySelectionEnd() {
+	Stop();
+
+	TimeRange times(context->audioController->GetPrimaryPlaybackRange());
+	context->audioController->PlayToEndOfPrimary(times.end() - std::min(500, times.length()));
+
+	StartVideoPlayback(TimeRange(times.end() - std::min(500, times.length()), times.end()));
+}
+
+void VideoController::PlayRange(TimeRange range) {
+	context->audioController->PlayRange(range);
+	StartVideoPlayback(range);
+}
+
+void VideoController::StartVideoPlayback(TimeRange range) {
 	// Round-trip conversion to convert start to exact
-	int startFrame = FrameAtTime(context->selectionController->GetActiveLine()->Start, agi::vfr::START);
+	int startFrame = FrameAtTime(range.begin(), agi::vfr::START);
 	start_ms = TimeAtFrame(startFrame);
-	end_frame = FrameAtTime(context->selectionController->GetActiveLine()->End, agi::vfr::END) + 1;
+	end_frame = FrameAtTime(range.end(), agi::vfr::END) + 1;
 
 	JumpToFrame(startFrame);
 

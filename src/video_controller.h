@@ -38,6 +38,7 @@
 
 class AssDialogue;
 class AsyncVideoProvider;
+class TimeRange;
 struct SubtitlesProviderErrorEvent;
 struct VideoProviderErrorEvent;
 
@@ -111,6 +112,9 @@ class VideoController final : public wxEvtHandler {
 
 	void RequestFrame();
 
+	void PlayRange(TimeRange range);
+	void StartVideoPlayback(TimeRange range);
+
 public:
 	VideoController(agi::Context *context);
 
@@ -154,6 +158,16 @@ public:
 	void PrevFrame();
 	/// Seek to the beginning of the current line, then play to the end of it
 	void PlayLine();
+	/// Play the audio selection (primary playback range) and the video over it
+	void PlaySelection();
+	/// Play 500 ms before the audio selection
+	void PlaySelectionBefore();
+	/// Play 500 ms after the audio selection
+	void PlaySelectionAfter();
+	/// Play the first 500 ms of the audio selection
+	void PlaySelectionBegin();
+	/// Play the last 500 ms of the audio selection
+	void PlaySelectionEnd();
 	/// Stop playing
 	void Stop();
 

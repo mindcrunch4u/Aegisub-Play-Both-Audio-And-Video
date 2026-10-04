@@ -77,6 +77,13 @@ struct validator_video_attached : public Command {
 	}
 };
 
+struct validator_video_playback : public Command {
+	CMD_TYPE(COMMAND_VALIDATE)
+	bool Validate(const agi::Context *c) override {
+		return !!c->project->VideoProvider() && !!c->project->AudioProvider();
+	}
+};
+
 struct video_aspect_cinematic final : public validator_video_loaded {
 	CMD_NAME("video/aspect/cinematic")
 	STR_MENU("&Cinematic (2.35)")
@@ -651,6 +658,61 @@ struct video_play_line final : public validator_video_loaded {
 	}
 };
 
+struct video_play_selection final : public validator_video_playback {
+	CMD_NAME("video/play/selection")
+	STR_MENU("Play video selection")
+	STR_DISP("Play video selection")
+	STR_HELP("Play video and audio until the end of the audio selection is reached")
+
+	void operator()(agi::Context *c) override {
+		c->videoController->PlaySelection();
+	}
+};
+
+struct video_play_selection_before final : public validator_video_playback {
+	CMD_NAME("video/play/selection/before")
+	STR_MENU("Play 500 ms before selection")
+	STR_DISP("Play 500 ms before selection")
+	STR_HELP("Play video and audio 500 ms before the audio selection")
+
+	void operator()(agi::Context *c) override {
+		c->videoController->PlaySelectionBefore();
+	}
+};
+
+struct video_play_selection_after final : public validator_video_playback {
+	CMD_NAME("video/play/selection/after")
+	STR_MENU("Play 500 ms after selection")
+	STR_DISP("Play 500 ms after selection")
+	STR_HELP("Play video and audio 500 ms after the audio selection")
+
+	void operator()(agi::Context *c) override {
+		c->videoController->PlaySelectionAfter();
+	}
+};
+
+struct video_play_selection_begin final : public validator_video_playback {
+	CMD_NAME("video/play/selection/begin")
+	STR_MENU("Play first 500 ms of selection")
+	STR_DISP("Play first 500 ms of selection")
+	STR_HELP("Play the first 500 ms of the audio selection")
+
+	void operator()(agi::Context *c) override {
+		c->videoController->PlaySelectionBegin();
+	}
+};
+
+struct video_play_selection_end final : public validator_video_playback {
+	CMD_NAME("video/play/selection/end")
+	STR_MENU("Play last 500 ms of selection")
+	STR_DISP("Play last 500 ms of selection")
+	STR_HELP("Play the last 500 ms of the audio selection")
+
+	void operator()(agi::Context *c) override {
+		c->videoController->PlaySelectionEnd();
+	}
+};
+
 struct video_show_overscan final : public validator_video_loaded {
 	CMD_NAME("video/show_overscan")
 	STR_MENU("Show &Overscan Mask")
@@ -806,6 +868,11 @@ namespace cmd {
 		reg(std::make_unique<video_opt_autoscroll>());
 		reg(std::make_unique<video_play>());
 		reg(std::make_unique<video_play_line>());
+		reg(std::make_unique<video_play_selection>());
+		reg(std::make_unique<video_play_selection_before>());
+		reg(std::make_unique<video_play_selection_after>());
+		reg(std::make_unique<video_play_selection_begin>());
+		reg(std::make_unique<video_play_selection_end>());
 		reg(std::make_unique<video_show_overscan>());
 		reg(std::make_unique<video_reset_pan>());
 		reg(std::make_unique<video_stop>());
