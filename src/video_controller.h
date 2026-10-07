@@ -85,6 +85,11 @@ class VideoController final : public wxEvtHandler {
 	/// The last frame to play if video is currently playing
 	int end_frame = 0;
 
+	/// Whether the current playback's end frame should track the primary
+	/// selection's end, so that moving the selection end while playing
+	/// extends/shortens the video playback to match (mirrors audio behavior)
+	bool playback_tracks_selection = false;
+
 	/// The frame number which was last requested from the video provider,
 	/// which may not be the same thing as the currently displayed frame
 	int frame_n = 0;

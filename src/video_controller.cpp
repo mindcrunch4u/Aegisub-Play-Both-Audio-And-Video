@@ -142,6 +142,7 @@ void VideoController::Play() {
 
 	if (!provider) return;
 
+	playback_tracks_selection = false;
 	start_ms = TimeAtFrame(frame_n);
 	end_frame = provider->GetFrameCount() - 1;
 
@@ -166,6 +167,7 @@ void VideoController::PlaySelection() {
 	context->audioController->PlayPrimaryRange();
 
 	StartVideoPlayback(context->audioController->GetPrimaryPlaybackRange());
+	playback_tracks_selection = true;
 }
 
 void VideoController::PlaySelectionBefore() {
@@ -196,9 +198,11 @@ void VideoController::PlaySelectionEnd() {
 	context->audioController->PlayToEndOfPrimary(times.end() - std::min(500, times.length()));
 
 	StartVideoPlayback(TimeRange(times.end() - std::min(500, times.length()), times.end()));
+	playback_tracks_selection = true;
 }
 
 void VideoController::PlayRange(TimeRange range) {
+	playback_tracks_selection = false;
 	context->audioController->PlayRange(range);
 	StartVideoPlayback(range);
 }
@@ -216,6 +220,7 @@ void VideoController::StartVideoPlayback(TimeRange range) {
 }
 
 void VideoController::Stop() {
+	playback_tracks_selection = false;
 	if (IsPlaying()) {
 		playback.Stop();
 		context->audioController->Stop();
@@ -224,11 +229,16 @@ void VideoController::Stop() {
 
 void VideoController::OnPlayTimer(wxTimerEvent &) {
 	using namespace std::chrono;
+
+	if (playback_tracks_selection)
+		end_frame = FrameAtTime(context->audioController->GetPrimaryPlaybackRange().end(), agi::vfr::END) + 1;
+
 	int next_frame = FrameAtTime(start_ms + duration_cast<milliseconds>(steady_clock::now() - playback_start_time).count());
-	if (next_frame == frame_n) return;
 
 	if (next_frame >= end_frame)
 		Stop();
+	else if (next_frame == frame_n)
+		return;
 	else {
 		frame_n = next_frame;
 		RequestFrame();
