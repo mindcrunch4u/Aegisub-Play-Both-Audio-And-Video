@@ -59,8 +59,38 @@ public:
 		return std::string(reinterpret_cast<const char *>(result.c_str()), result.size());
 	}
 
-	// We do not override wstring() here: While the conversion method for this is technically unspecified here,
-	// it seems to always return UTF-16 in practice. If this ever changes, wstring() can be overwritten or deleted here.
+#ifndef _WIN32
+	// std::filesystem::path::wstring() on non-Windows converts the internal
+	// UTF-8 string using a "C"-locale codecvt, which throws
+	// std::filesystem::filesystem_error ("Cannot convert character sequence")
+	// for any path containing non-ASCII characters. Decode UTF-8 ourselves so
+	// the result is locale-independent. (wchar_t is UTF-32 on Linux/macOS.)
+	inline std::wstring wstring() const {
+		auto const u8 = std::filesystem::path::u8string();
+		std::wstring result;
+		result.reserve(u8.size());
+		for (size_t i = 0; i < u8.size();) {
+			unsigned char c = static_cast<unsigned char>(u8[i]);
+			wchar_t cp;
+			int extra;
+			if (c < 0x80)      { cp = c; extra = 0; }
+			else if (c < 0xC2) { cp = 0xFFFD; extra = 0; }  // stray continuation
+			else if (c < 0xE0) { cp = c & 0x1F; extra = 1; }
+			else if (c < 0xF0) { cp = c & 0x0F; extra = 2; }
+			else if (c < 0xF5) { cp = c & 0x07; extra = 3; }
+			else               { cp = 0xFFFD; extra = 0; }  // invalid lead byte
+			for (int k = 1; k <= extra; ++k) {
+				if (i + k >= u8.size() || (u8[i + k] & 0xC0) != 0x80) {
+					cp = 0xFFFD; extra = 0; break;           // truncated/invalid continuation
+				}
+				cp = (cp << 6) | (u8[i + k] & 0x3F);
+			}
+			result.push_back(cp);
+			i += extra + 1;
+		}
+		return result;
+	}
+#endif
 
 	inline friend path operator/(path const& lhs, path const& rhs) {
 		const std::filesystem::path &lhs_ = lhs;
